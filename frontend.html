@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DefendX Real-Time Threat Detection</title>
+    <style>
+        /* Styling */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: #1b1b1b;
+            color: white;
+        }
+        header {
+            background-color: #282828;
+            padding: 15px;
+            text-align: center;
+            border-bottom: 2px solid #ff4c4c;
+        }
+        header h1 {
+            color: #ff4c4c;
+        }
+        main {
+            padding: 20px;
+        }
+        .form-container {
+            background-color: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #ff4c4c;
+            margin-bottom: 20px;
+        }
+        .form-container label {
+            display: block;
+            margin-bottom: 8px;
+        }
+        .form-container input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #555;
+            border-radius: 5px;
+            background-color: #333;
+            color: white;
+        }
+        .form-container button {
+            background-color: #ff4c4c;
+            border: none;
+            color: white;
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .form-container button:hover {
+            background-color: #cc0000;
+        }
+        .dashboard {
+            margin-top: 20px;
+        }
+        .alert {
+            background-color: #330000;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border-left: 4px solid red;
+        }
+        .alert.high {
+            border-left: 4px solid #ff0000;
+        }
+        .alert.medium {
+            border-left: 4px solid #ffaa00;
+        }
+        .alert.low {
+            border-left: 4px solid #00ff00;
+        }
+        .charts {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+        #threat-chart {
+            width: 100%;
+            max-width: 600px;
+            height: 300px;
+            background: white;
+        }
+        footer {
+            background-color: #282828;
+            padding: 10px;
+            text-align: center;
+            color: #ff4c4c;
+            border-top: 2px solid #ff0000;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Real-Time Threat Detection</h1>
+    </header>
+    <main>
+        <div class="form-container">
+            <h2>Threat Analysis Input</h2>
+            <label for="url">Website URL:</label>
+            <input type="text" id="url" placeholder="Enter a URL">
+            <label for="email">Email Address:</label>
+            <input type="text" id="email" placeholder="Enter an email">
+            <button id="analyze-btn">Analyze Threat</button>
+        </div>
+
+        <div class="dashboard">
+            <h2>Real-Time Threat Logs</h2>
+            <div id="threat-logs">
+                <!-- Threat logs will be appended here dynamically -->
+            </div>
+        </div>
+
+        <div class="charts">
+            <h2>Threat Visualization</h2>
+            <canvas id="threat-chart"></canvas>
+        </div>
+    </main>
+    <footer>
+        <p>&copy; 2024 DefendX. All Rights Reserved.</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const URL_BLACKLIST = ["malware.com", "phishing.net", "risky-site.org"];
+        const EMAIL_BLACKLIST = ["scam@example.com", "malicious@spam.com"];
+        const threatData = {
+            low: 0,
+            medium: 0,
+            high: 0,
+        };
+
+        const validateInput = (url, email) => {
+            const errors = [];
+            try {
+                new URL(url);
+            } catch {
+                errors.push("Invalid URL format.");
+            }
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                errors.push("Invalid email format.");
+            }
+            return errors;
+        };
+
+        const analyzeThreat = (url, email) => {
+            let severity = "Low";
+            let message = "No significant threats detected.";
+
+            if (URL_BLACKLIST.some((blacklist) => url.includes(blacklist))) {
+                severity = "High";
+                message = "Blacklisted URL detected.";
+            }
+
+            if (EMAIL_BLACKLIST.includes(email)) {
+                severity = "High";
+                message = "Blacklisted email detected.";
+            }
+
+            if (severity !== "High") {
+                if (url.includes("http") || email.includes(".com")) {
+                    severity = "Medium";
+                    message = "Suspicious pattern detected.";
+                }
+            }
+
+            return { severity, message, timestamp: new Date().toLocaleString() };
+        };
+
+        const addThreatLog = (severity, message, timestamp) => {
+            const logContainer = document.getElementById("threat-logs");
+            const log = document.createElement("div");
+            log.className = `alert ${severity.toLowerCase()}`;
+            log.innerHTML = `
+                <strong>Severity:</strong> ${severity}<br>
+                <strong>Message:</strong> ${message}<br>
+                <strong>Time:</strong> ${timestamp}
+            `;
+            logContainer.prepend(log);
+
+            // Update chart
+            threatData[severity.toLowerCase()]++;
+            updateChart();
+        };
+
+        const updateChart = () => {
+            chart.data.datasets[0].data = [
+                threatData.low,
+                threatData.medium,
+                threatData.high,
+            ];
+            chart.update();
+        };
+
+        const ctx = document.getElementById("threat-chart").getContext("2d");
+        const chart = new Chart(ctx, {
+            type: "bar",
+            data: {
+                labels: ["Low", "Medium", "High"],
+                datasets: [
+                    {
+                        label: "Threat Severity",
+                        data: [0, 0, 0],
+                        backgroundColor: ["#00ff00", "#ffaa00", "#ff0000"],
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false,
+                    },
+                },
+            },
+        });
+
+        document.getElementById("analyze-btn").addEventListener("click", () => {
+            const url = document.getElementById("url").value;
+            const email = document.getElementById("email").value;
+
+            const errors = validateInput(url, email);
+            if (errors.length > 0) {
+                alert(errors.join("\n"));
+                return;
+            }
+
+            const { severity, message, timestamp } = analyzeThreat(url, email);
+            addThreatLog(severity, message, timestamp);
+
+            if (severity === "High") {
+                alert("Critical threat detected! Security personnel notified.");
+            }
+        });
+    </script>
+</body>
+</html>
